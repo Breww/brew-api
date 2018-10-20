@@ -29,8 +29,8 @@ export const userPrefRecommendation = functions.https.onRequest(async ({ query }
 
   const { uuid, offset, limit } = query;
 
-  const queryOffset = offset || DEFAULT_FILTER_OFFSET;
-  const queryLimit = limit || DEFAULT_FILTER_LIMIT;
+  const queryOffset = Number(offset || DEFAULT_FILTER_OFFSET);
+  const queryLimit = Number(limit || DEFAULT_FILTER_LIMIT);
 
   const recommender = new ContentBasedRecommender({
     minScore: DEFAULT_MIN_SCORE,
@@ -50,7 +50,10 @@ export const userPrefRecommendation = functions.https.onRequest(async ({ query }
     } = result.data();
 
     if (!Array.isArray(preferredCategories) || !preferredCategories.length) {
-      // TODO: Handle not instantiated
+      response.send({
+        content: []
+      });
+      return;
     }
 
     const searchFilter = preferredCategories
@@ -67,20 +70,21 @@ export const userPrefRecommendation = functions.https.onRequest(async ({ query }
     const { hits, params } = searchResponse;
 
      // TODO: Find coherent reducer for type matching
-    const trainingSet = hits.map(({ id, Category }) => ({
-      id,
-      content: Category
-    })).concat({
+    const trainingSet = hits.map(
+      ({ id, Category: content }) => ({ id, content })
+    )
+
+    const joinedTrainingSet = trainingSet.concat({
       id: '-1',
       content: preferredCategories.join(' ')
-    });
+    })
 
     const referenceMap = hits.reduce((acc, item) => ({
       ...acc,
       [item.id]: item
     }), {})
 
-    recommender.train(trainingSet);
+    recommender.train(joinedTrainingSet);
 
     const similarDocuments = recommender.getSimilarDocuments('-1', 0, queryLimit);
 
