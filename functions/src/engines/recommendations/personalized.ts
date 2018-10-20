@@ -4,8 +4,12 @@ import * as admin from 'firebase-admin';
 import * as algoliasearch from 'algoliasearch';
 import * as pluralize from 'pluralize';
 
+const unique = require("array-unique").immutable;
+
 import { BeerEntity, InferenceMap } from '../../typings';
 import { maybeInitializeApp } from '../../utils/app-instance';
+
+
 
 maybeInitializeApp();
 
@@ -44,6 +48,7 @@ export const recommendPersonal = functions.https.onRequest(async ({ query }, res
     
     const {
       beers,
+      preferredCategories
     } = result.data();
 
     if (!Array.isArray(beers) || !beers.length) {
@@ -55,16 +60,19 @@ export const recommendPersonal = functions.https.onRequest(async ({ query }, res
     
     // filter out bad rating beers
     const filteredBeers = beers.filter(({ rating }: BeerEntity) => Boolean(Number(rating)))
+    const mappedCategories = preferredCategories.map(category => ({ category }));
 
-    const terms = filteredBeers.reduce(({ styles, categories }, { style, category }: BeerEntity) => ({
-      styles: [...styles, style],
+    const userPreferences = [
+      ...filteredBeers,
+      ...mappedCategories,
+    ];
+
+    const terms = userPreferences.reduce(({ categories }, { category }: BeerEntity) => ({
       categories: [...categories, category]
-    }), { styles: [], categories: [] });
-
-    console.log(terms);
+    }), { categories: [] });
 
     const searchFilter = Object.keys(terms).map(
-      key => terms[key].map(prop => `${pluralize.singular(key)}:"${prop}" `).join('OR ')
+      key => unique(terms[key]).map(prop => `${pluralize.singular(key)}:"${prop}" `).join('OR ')
     ).join('AND ')
 
     const { hits, params } = await searchIndex.search({
@@ -73,10 +81,11 @@ export const recommendPersonal = functions.https.onRequest(async ({ query }, res
       offset: queryOffset,
     });
 
-    console.log('hits.length', hits.length)
-
     const trainingSet = hits.map(
-      ({ id, category }: BeerEntity) => ({ id, content: category })
+      ({ id, category, style }: BeerEntity) => ({
+        id,
+        content: `${category} ${style}`
+      })
     )
 
     const referenceMap: InferenceMap = hits.reduce((acc, hit) => ({
@@ -94,7 +103,7 @@ export const recommendPersonal = functions.https.onRequest(async ({ query }, res
   
       recommender.train(joinedTrainingSet);
   
-      const similarDocuments = recommender.getSimilarDocuments('-1', 0, queryLimit);
+      const similarDocuments = recommender.getSimilarDocuments('-1', 0, queryLimit * 2);
   
       const matchedDocuments = similarDocuments.map(
         ({ id, score }) => ({
@@ -103,16 +112,17 @@ export const recommendPersonal = functions.https.onRequest(async ({ query }, res
         })
       );
 
-      console.log('matchedDocuments.length', matchedDocuments.length);
-  
       return [
         ...acc,
         ...matchedDocuments,
       ]
     }, []);
 
+    const responseContent = scoredResponseSets.sort(({ score: a }, { score: b }) => a > b)
+      .slice(0, queryLimit);
+
     response.send({
-      content: hits,
+      content: responseContent,
       params
     });
   } catch (e) {
