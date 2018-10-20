@@ -7,11 +7,11 @@ admin.firestore().settings({
   timestampsInSnapshots: true
 })
 
-const algoliaConfig = functions.config().algolia;
+const algoliaConfig = functions.config().algolia || {};
 
 const searchClient = algoliasearch(
-  algoliaConfig.app_id,
-  algoliaConfig.search_key
+  algoliaConfig.app_id || '3H1HDP91P5',
+  algoliaConfig.search_key || '650d307ff3d923192e3100fd418e03b5'
 );
 
 const searchIndex = searchClient.initIndex('breww-index-engine');
@@ -30,12 +30,23 @@ export const userPrefRecommendation = functions.https.onRequest(async ({ query }
 
   try {
     const result = await admin.firestore().collection('users').doc(uuid).get();
-    const resolvedData = result.data();
+    
+    const {
+      preferredCategories,
+    } = result.data();
 
-    const searchTerm = resolvedData.preferredCategories.join(' ');
-    const searchResult = await searchIndex.search(searchTerm);
+    const searchFilter = preferredCategories
+      .map(category => `Category:"${category} "`)
+      .join('OR ')
+      .trimRight();
 
-    response.send(searchResult);
+    const searchResponse = await searchIndex.search({
+      filters: searchFilter,
+      length: 10,
+      offset: 0,
+    });
+
+    response.send(searchResponse)
   } catch (e) {
     response.send({
       message: e.message
