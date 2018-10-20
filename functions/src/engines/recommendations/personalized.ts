@@ -9,8 +9,6 @@ const unique = require("array-unique").immutable;
 import { BeerEntity, InferenceMap } from '../../typings';
 import { maybeInitializeApp } from '../../utils/app-instance';
 
-
-
 maybeInitializeApp();
 
 const DEFAULT_FILTER_OFFSET = 0;
@@ -118,8 +116,8 @@ export const recommendPersonal = functions.https.onRequest(async ({ query }, res
       ]
     }, []);
 
-    const responseContent = scoredResponseSets.sort(({ score: a }, { score: b }) => a > b)
-      .slice(0, queryLimit);
+    const responseContent = scoredResponseSets.sort(({ score: a }, { score: b }) => Number(a) < Number(b))
+      .slice(0, queryLimit)
 
     response.send({
       content: responseContent,
