@@ -1,5 +1,4 @@
 import * as functions from 'firebase-functions';
-import * as admin from 'firebase-admin';
 import * as algoliasearch from 'algoliasearch';
 
 const DEFAULT_FILTER_OFFSET = 0;
@@ -28,7 +27,7 @@ export const getAutoComplete = functions.https.onRequest(async ({ query }, respo
       length: limit || DEFAULT_FILTER_LIMIT,
       offset: offset || DEFAULT_FILTER_OFFSET,
       restrictSearchableAttributes: [
-        "Name"
+        "name"
       ]
     });
 
