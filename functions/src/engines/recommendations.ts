@@ -2,6 +2,9 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import * as algoliasearch from 'algoliasearch';
 
+const DEFAULT_FILTER_OFFSET = 0;
+const DEFAULT_FILTER_LIMIT = 10;
+
 admin.initializeApp()
 admin.firestore().settings({
   timestampsInSnapshots: true
@@ -10,8 +13,8 @@ admin.firestore().settings({
 const algoliaConfig = functions.config().algolia || {};
 
 const searchClient = algoliasearch(
-  algoliaConfig.app_id || '3H1HDP91P5',
-  algoliaConfig.search_key || '650d307ff3d923192e3100fd418e03b5'
+  algoliaConfig.app_id,
+  algoliaConfig.search_key,
 );
 
 const searchIndex = searchClient.initIndex('breww-index-engine');
@@ -21,7 +24,7 @@ const searchIndex = searchClient.initIndex('breww-index-engine');
  * open comm channel with algolia and return strong recommendation set
  */
 export const userPrefRecommendation = functions.https.onRequest(async ({ query }, response) => {
-  const { uuid } = query;
+  const { uuid, offset, limit } = query;
 
   if (!uuid) {
     response.status(404).send({ message: '`uuid` required as a request param' });
@@ -35,6 +38,10 @@ export const userPrefRecommendation = functions.https.onRequest(async ({ query }
       preferredCategories,
     } = result.data();
 
+    if (!Array.isArray(preferredCategories) || !preferredCategories.length) {
+      // TODO: Handle not instantiated
+    }
+
     const searchFilter = preferredCategories
       .map(category => `Category:"${category} "`)
       .join('OR ')
@@ -42,8 +49,8 @@ export const userPrefRecommendation = functions.https.onRequest(async ({ query }
 
     const searchResponse = await searchIndex.search({
       filters: searchFilter,
-      length: 10,
-      offset: 0,
+      length: limit || DEFAULT_FILTER_LIMIT,
+      offset: offset || DEFAULT_FILTER_OFFSET,
     });
 
     response.send(searchResponse)
