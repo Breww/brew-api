@@ -2,14 +2,13 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import * as algoliasearch from 'algoliasearch';
 
+import * as pluralize from 'pluralize';
+
+import { BeerEntity } from '../../model/beer';
+
 const DEFAULT_FILTER_OFFSET = 0;
 const DEFAULT_FILTER_LIMIT = 10;
 const DEFAULT_MIN_SCORE = .1;
-
-admin.initializeApp()
-admin.firestore().settings({
-  timestampsInSnapshots: true
-})
 
 const algoliaConfig = functions.config().algolia || {};
 
@@ -24,7 +23,7 @@ const searchIndex = searchClient.initIndex('breww-index-engine');
  * Given a users uuid, we will perform lookup for their records,
  * open comm channel with algolia and return strong recommendation set
  */
-export const userPrefRecommendation = functions.https.onRequest(async ({ query }, response) => {
+export const recommendPersonalized = functions.https.onRequest(async ({ query }, response) => {
   const ContentBasedRecommender = require('content-based-recommender')
 
   const { uuid, offset, limit } = query;
@@ -46,59 +45,28 @@ export const userPrefRecommendation = functions.https.onRequest(async ({ query }
     const result = await admin.firestore().collection('users').doc(uuid).get();
     
     const {
-      preferredCategories,
+      beers,
     } = result.data();
 
-    if (!Array.isArray(preferredCategories) || !preferredCategories.length) {
+    if (!Array.isArray(beers) || !beers.length) {
       response.send({
         content: []
       });
       return;
     }
 
-    const searchFilter = preferredCategories
-      .map(category => `Category:"${category} "`)
-      .join('OR ')
-      .trimRight();
+    const terms = beers.reduce(({ names, styles, categories }, { name, style, category }: BeerEntity) => ({
+      names: [...names, name],
+      styles: [...styles, style],
+      categories: [...categories, category]
+    }), { names: [], styles: [], categories: [] });
 
-    const searchResponse = await searchIndex.search({
-      filters: searchFilter,
-      length: queryLimit,
-      offset: queryOffset,
-    });
+    const reducedTerms = Object.keys(terms).map(
+      key => terms[key].map(prop => `${pluralize.singular(key)}:"${prop}"`).join('OR ')
+    ).join('AND ')
 
-    const { hits, params } = searchResponse;
 
-     // TODO: Find coherent reducer for type matching
-    const trainingSet = hits.map(
-      ({ id, Category: content }) => ({ id, content })
-    )
-
-    const joinedTrainingSet = trainingSet.concat({
-      id: '-1',
-      content: preferredCategories.join(' ')
-    })
-
-    const referenceMap = hits.reduce((acc, item) => ({
-      ...acc,
-      [item.id]: item
-    }), {})
-
-    recommender.train(joinedTrainingSet);
-
-    const similarDocuments = recommender.getSimilarDocuments('-1', 0, queryLimit);
-
-    const matchedDocuments = similarDocuments.map(
-      ({ id, score }) => ({
-        ...referenceMap[id],
-        score
-      })
-    );
-
-    response.send({
-      params,
-      content: matchedDocuments,
-    })
+    response.send(reducedTerms);
   } catch (e) {
     response.send({
       message: e.message

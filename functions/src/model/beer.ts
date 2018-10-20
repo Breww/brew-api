@@ -1,10 +1,11 @@
 export enum BeerAttr {
-  NAME = 'Name',
-  CATEGORY = 'Category',
-  STYLE = 'Style',
-  ABV = 'Alcohol By Volume',
-  IBU = 'International Bitterness Units',
-  DESCRIPTION = 'Description',
+  ID = 'id',
+  NAME = 'name',
+  CATEGORY = 'category',
+  STYLE = 'style',
+  ABV = 'abv',
+  IBU = 'ibu',
+  DESCRIPTION = 'description',
 }
 
 export type BeerEntity = {
