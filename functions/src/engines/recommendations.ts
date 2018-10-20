@@ -23,6 +23,11 @@ const searchIndex = searchClient.initIndex('breww-index-engine');
 export const userPrefRecommendation = functions.https.onRequest(async ({ query }, response) => {
   const { uuid } = query;
 
+  if (!uuid) {
+    response.status(404).send({ message: '`uuid` required as a request param' });
+    return;
+  }
+
   try {
     const result = await admin.firestore().collection('users').doc(uuid).get();
     const resolvedData = result.data();
