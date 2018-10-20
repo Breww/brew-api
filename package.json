@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "array-unique": "^0.3.2",
     "pluralize": "^7.0.0"
   }
 }
