@@ -80,3 +80,66 @@ http://localhost:5000/breww-220002/us-central1/userPrefRecommendation?uuid=36301
 - `name`: Substring to search for in indexed DB
 - `limit`: Query limit, max number of records to fetch
 - `offset`: Query offset, starting cursor (useful for pagination)
+
+```
+{
+   "hits":[
+      {
+         "name":"Bud Ice",
+         "id":"4383",
+         "brewery_id":"44",
+         "cat_id":"8",
+         "style_id":"95",
+         "abv":"5.5",
+         "ibu":"0",
+         "srm":"0",
+         "upc":"0",
+         "filepath":"",
+         "description":"Actually an Ice Lager. Introduced in 1984.",
+         "add_user":"0",
+         "last_mod":"2010-07-23T01:30:00+05:30",
+         "style":"American-Style Lager",
+         "category":"North American Lager",
+         "brewer":"Anheuser-Busch",
+         "address":"One Busch Place",
+         "city":"Saint Louis",
+         "state":"Missouri",
+         "country":"United States",
+         "coordinates":"38.5983, -90.209",
+         "website":"http://www.anheuser-busch.com/",
+         "objectID":"54787001",
+         "_highlightResult":{
+            "name":{
+               "value":"<em>Bud</em> Ice",
+               "matchLevel":"full",
+               "fullyHighlighted":false,
+               "matchedWords":[
+                  "bud"
+               ]
+            },
+            "style":{
+               "value":"American-Style Lager",
+               "matchLevel":"none",
+               "matchedWords":[
+
+               ]
+            },
+            "category":{
+               "value":"North American Lager",
+               "matchLevel":"none",
+               "matchedWords":[
+
+               ]
+            }
+         }
+      }
+   ],
+   "nbHits":11,
+   "offset":0,
+   "length":1,
+   "processingTimeMS":1,
+   "exhaustiveNbHits":true,
+   "query":"Bud",
+   "params":"query=Bud&length=1&offset=0&restrictSearchableAttributes=%5B%22name%22%5D"
+}
+```
