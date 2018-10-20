@@ -11,7 +11,6 @@
 - `limit`: Query limit, max number of records to fetch
 - `offset`: Query offset, starting cursor (useful for pagination)
 
-<<<<<<< HEAD
 ### Sample Response
 
 ```
@@ -72,7 +71,6 @@ http://localhost:5000/breww-220002/us-central1/userPrefRecommendation?uuid=36301
    ]
 }
 ```
-=======
 
 ### GET - Get Autocomplete
 
@@ -82,4 +80,3 @@ http://localhost:5000/breww-220002/us-central1/userPrefRecommendation?uuid=36301
 - `name`: Substring to search for in indexed DB
 - `limit`: Query limit, max number of records to fetch
 - `offset`: Query offset, starting cursor (useful for pagination)
->>>>>>> 902b100f8e30f381083391fa1f004d79dac66095
