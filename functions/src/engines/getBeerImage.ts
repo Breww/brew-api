@@ -1,7 +1,6 @@
 import * as functions from 'firebase-functions';
 import * as https from 'https';
 
-const DEFAULT_FILTER_OFFSET = 0;
 const DEFAULT_FILTER_LIMIT = 1;
 
 /**
@@ -10,13 +9,13 @@ const DEFAULT_FILTER_LIMIT = 1;
  */
 
 export const getBeerImage = functions.https.onRequest(async ({ query }, response) => {
-  const { brand, offset, limit } = query;
+  const { brand } = query;
 
-  let subscriptionKey = functions.config().azure.subscription_key;
-  let host = 'api.cognitive.microsoft.com';
-  let path = '/bing/v7.0/images/search';
+  const subscriptionKey = functions.config().azure.subscription_key;
+  const host = 'api.cognitive.microsoft.com';
+  const path = '/bing/v7.0/images/search';
 
-  let request_params = {
+  const request_params = {
     method : 'GET',
     hostname : host,
     path : path + '?q=' + encodeURIComponent(`${brand} logo`) + `&count=${DEFAULT_FILTER_LIMIT}`,
@@ -26,27 +25,27 @@ export const getBeerImage = functions.https.onRequest(async ({ query }, response
   };
   try {
     const res = await new Promise( function (resolve, reject) {
-      let response_handler = function (response) {
+      const response_handler = function (resp) {
         let body = '';
-        response.on('data', function (d) {
+        resp.on('data', function (d) {
             body += d;
         });
-        response.on('end', function () {
-          let imageResults = JSON.parse(body);
+        resp.on('end', function () {
+          const imageResults = JSON.parse(body);
           if (imageResults.value.length > 0) {
-              let firstImageResult = imageResults.value[0];
+              const firstImageResult = imageResults.value[0];
               resolve(firstImageResult.thumbnailUrl)
           }
           else {
               console.log("Couldn't find image results!");
           }
         });
-        response.on('error', function (e) {
+        resp.on('error', function (e) {
             console.log('Error: ' + e.message);
             reject(e)
         });
       };
-      let req = https.request(request_params, response_handler);
+      const req = https.request(request_params, response_handler);
       req.end()
     })
 
