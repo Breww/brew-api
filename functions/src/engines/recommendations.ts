@@ -4,6 +4,7 @@ import * as algoliasearch from 'algoliasearch';
 
 const DEFAULT_FILTER_OFFSET = 0;
 const DEFAULT_FILTER_LIMIT = 10;
+const DEFAULT_MIN_SCORE = .1;
 
 admin.initializeApp()
 admin.firestore().settings({
@@ -24,7 +25,17 @@ const searchIndex = searchClient.initIndex('breww-index-engine');
  * open comm channel with algolia and return strong recommendation set
  */
 export const userPrefRecommendation = functions.https.onRequest(async ({ query }, response) => {
+  const ContentBasedRecommender = require('content-based-recommender')
+
   const { uuid, offset, limit } = query;
+
+  const queryOffset = offset || DEFAULT_FILTER_OFFSET;
+  const queryLimit = limit || DEFAULT_FILTER_LIMIT;
+
+  const recommender = new ContentBasedRecommender({
+    minScore: DEFAULT_MIN_SCORE,
+    maxSimilarDocuments: queryLimit
+  });
 
   if (!uuid) {
     response.status(404).send({ message: '`uuid` required as a request param' });
@@ -49,11 +60,41 @@ export const userPrefRecommendation = functions.https.onRequest(async ({ query }
 
     const searchResponse = await searchIndex.search({
       filters: searchFilter,
-      length: limit || DEFAULT_FILTER_LIMIT,
-      offset: offset || DEFAULT_FILTER_OFFSET,
+      length: queryLimit,
+      offset: queryOffset,
     });
 
-    response.send(searchResponse)
+    const { hits, params } = searchResponse;
+
+     // TODO: Find coherent reducer for type matching
+    const trainingSet = hits.map(({ id, Category }) => ({
+      id,
+      content: Category
+    })).concat({
+      id: '-1',
+      content: preferredCategories.join(' ')
+    });
+
+    const referenceMap = hits.reduce((acc, item) => ({
+      ...acc,
+      [item.id]: item
+    }), {})
+
+    recommender.train(trainingSet);
+
+    const similarDocuments = recommender.getSimilarDocuments('-1', 0, queryLimit);
+
+    const matchedDocuments = similarDocuments.map(
+      ({ id, score }) => ({
+        ...referenceMap[id],
+        score
+      })
+    );
+
+    response.send({
+      params,
+      content: matchedDocuments,
+    })
   } catch (e) {
     response.send({
       message: e.message
