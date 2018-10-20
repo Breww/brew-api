@@ -1,9 +1,2 @@
-import * as admin from 'firebase-admin';
-
-admin.initializeApp()
-
-admin.firestore().settings({
-  timestampsInSnapshots: true
-})
-
-export { recommendCategorical, recommendPersonalized } from './engines/recommendations';
+export { recommendPersonal } from './engines/recommendations/personalized';
+export { recommendCategorical } from './engines/recommendations/categorical';

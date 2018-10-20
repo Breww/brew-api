@@ -2,6 +2,10 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import * as algoliasearch from 'algoliasearch';
 
+if (!admin.app) {
+  admin.initializeApp();
+}
+
 import * as pluralize from 'pluralize';
 
 import { BeerEntity } from '../../model/beer';
@@ -23,7 +27,7 @@ const searchIndex = searchClient.initIndex('breww-index-engine');
  * Given a users uuid, we will perform lookup for their records,
  * open comm channel with algolia and return strong recommendation set
  */
-export const recommendPersonalized = functions.https.onRequest(async ({ query }, response) => {
+export const recommendPersonal = functions.https.onRequest(async ({ query }, response) => {
   const ContentBasedRecommender = require('content-based-recommender')
 
   const { uuid, offset, limit } = query;
@@ -64,7 +68,6 @@ export const recommendPersonalized = functions.https.onRequest(async ({ query },
     const reducedTerms = Object.keys(terms).map(
       key => terms[key].map(prop => `${pluralize.singular(key)}:"${prop}"`).join('OR ')
     ).join('AND ')
-
 
     response.send(reducedTerms);
   } catch (e) {

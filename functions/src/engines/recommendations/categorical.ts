@@ -3,7 +3,11 @@ import * as admin from 'firebase-admin';
 import * as algoliasearch from 'algoliasearch';
 import { BeerEntity } from '../../model/beer';
 
-export type InferenceMap = { [itemId: string]: BeerEntity };
+if (!admin.app) {
+  admin.initializeApp();
+}
+
+type InferenceMap = { [itemId: string]: BeerEntity };
 
 const DEFAULT_FILTER_OFFSET = 0;
 const DEFAULT_FILTER_LIMIT = 10;
