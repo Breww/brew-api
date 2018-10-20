@@ -1,14 +1,13 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+
 import * as algoliasearch from 'algoliasearch';
-
-if (!admin.app) {
-  admin.initializeApp();
-}
-
 import * as pluralize from 'pluralize';
 
-import { BeerEntity } from '../../model/beer';
+import { BeerEntity, InferenceMap } from '../../typings';
+import { maybeInitializeApp } from '../../utils/app-instance';
+
+maybeInitializeApp();
 
 const DEFAULT_FILTER_OFFSET = 0;
 const DEFAULT_FILTER_LIMIT = 10;
@@ -35,11 +34,6 @@ export const recommendPersonal = functions.https.onRequest(async ({ query }, res
   const queryOffset = Number(offset || DEFAULT_FILTER_OFFSET);
   const queryLimit = Number(limit || DEFAULT_FILTER_LIMIT);
 
-  const recommender = new ContentBasedRecommender({
-    minScore: DEFAULT_MIN_SCORE,
-    maxSimilarDocuments: queryLimit
-  });
-
   if (!uuid) {
     response.status(404).send({ message: '`uuid` required as a request param' });
     return;
@@ -58,18 +52,69 @@ export const recommendPersonal = functions.https.onRequest(async ({ query }, res
       });
       return;
     }
+    
+    // filter out bad rating beers
+    const filteredBeers = beers.filter(({ rating }: BeerEntity) => Boolean(Number(rating)))
 
-    const terms = beers.reduce(({ names, styles, categories }, { name, style, category }: BeerEntity) => ({
-      names: [...names, name],
+    const terms = filteredBeers.reduce(({ styles, categories }, { style, category }: BeerEntity) => ({
       styles: [...styles, style],
       categories: [...categories, category]
-    }), { names: [], styles: [], categories: [] });
+    }), { styles: [], categories: [] });
 
-    const reducedTerms = Object.keys(terms).map(
-      key => terms[key].map(prop => `${pluralize.singular(key)}:"${prop}"`).join('OR ')
+    console.log(terms);
+
+    const searchFilter = Object.keys(terms).map(
+      key => terms[key].map(prop => `${pluralize.singular(key)}:"${prop}" `).join('OR ')
     ).join('AND ')
 
-    response.send(reducedTerms);
+    const { hits, params } = await searchIndex.search({
+      filters: searchFilter,
+      length: 1000,
+      offset: queryOffset,
+    });
+
+    console.log('hits.length', hits.length)
+
+    const trainingSet = hits.map(
+      ({ id, category }: BeerEntity) => ({ id, content: category })
+    )
+
+    const referenceMap: InferenceMap = hits.reduce((acc, hit) => ({
+      ...acc,
+      [hit.id]: hit
+    }), {})
+
+    const scoredResponseSets = beers.reduce((acc, { category }: BeerEntity) => {
+      const recommender = new ContentBasedRecommender({
+        minScore: DEFAULT_MIN_SCORE,
+        maxSimilarDocuments: queryLimit * 5,
+      });
+      
+      const joinedTrainingSet = trainingSet.concat({ id: '-1', content: category })
+  
+      recommender.train(joinedTrainingSet);
+  
+      const similarDocuments = recommender.getSimilarDocuments('-1', 0, queryLimit);
+  
+      const matchedDocuments = similarDocuments.map(
+        ({ id, score }) => ({
+          ...referenceMap[id],
+          score
+        })
+      );
+
+      console.log('matchedDocuments.length', matchedDocuments.length);
+  
+      return [
+        ...acc,
+        ...matchedDocuments,
+      ]
+    }, []);
+
+    response.send({
+      content: hits,
+      params
+    });
   } catch (e) {
     response.send({
       message: e.message

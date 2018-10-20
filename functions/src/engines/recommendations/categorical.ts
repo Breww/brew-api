@@ -1,19 +1,14 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import * as algoliasearch from 'algoliasearch';
-import { BeerEntity } from '../../model/beer';
+import { BeerEntity, InferenceMap } from '../../typings';
+import { maybeInitializeApp } from '../../utils/app-instance';
 
-if (!admin.app) {
-  admin.initializeApp();
-}
-
-type InferenceMap = { [itemId: string]: BeerEntity };
+maybeInitializeApp();
 
 const DEFAULT_FILTER_OFFSET = 0;
 const DEFAULT_FILTER_LIMIT = 10;
 const DEFAULT_MIN_SCORE = .1;
-
-
 
 const algoliaConfig = functions.config().algolia || {};
 
