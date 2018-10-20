@@ -6,5 +6,4 @@ etc/
 lib/
 
 # Typescript v1 declaration files
-typings/
 .runtimeconfig.json
