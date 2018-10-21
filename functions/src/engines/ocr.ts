@@ -48,7 +48,7 @@ export const ocr = functions.https.onRequest(async ({ query }, response) => {
       ...region.lines.reduce((acc, line) => [...acc, ...line.words], [])
     ], [])
     
-    const searchTerm = terms
+    const searchTerm: string = terms
       .slice()
       .sort(({ boundingBox: a }, { boundingBox: b }) => area(b) - area(a))
       .map(({ text }) => text)
@@ -56,6 +56,12 @@ export const ocr = functions.https.onRequest(async ({ query }, response) => {
       .join(' ')
       .toLowerCase();
     
+    if (searchTerm.trim().length === 0) {
+      response.send({
+        hits: []
+      })
+      return;
+    }
 
     const searchResponse = await searchIndex.search(searchTerm);
 
