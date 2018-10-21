@@ -21,7 +21,7 @@ const searchIndex = searchClient.initIndex('breww-index-engine');
  * Given a users uuid, we will perform lookup for their records,
  * open comm channel with algolia and return strong recommendation set
  */
-export const processBeer = functions.https.onRequest(async ({ query }, response) => {
+export const ocr = functions.https.onRequest(async ({ query }, response) => {
   const { url } = query;
 
   // const subscriptionKey = functions.config().azure.subscription_key;
@@ -29,7 +29,7 @@ export const processBeer = functions.https.onRequest(async ({ query }, response)
   const path = '/vision/v1.0/ocr?language=unk&detectOrientation=true';
 
   try {
-    const result = fetch(`http://${host}${path}`, {
+    const result = await fetch(`http://${host}${path}`, {
       method : 'POST',
       headers : {
         'Content-Type': 'application/json',
@@ -37,7 +37,7 @@ export const processBeer = functions.https.onRequest(async ({ query }, response)
       },
       body: JSON.stringify({"url":url})
     }).then(res => res.json())
-    
+
     const terms = result.regions.reduce((regionAcc, region) => [
       ...regionAcc,
       ...region.lines.reduce((acc, line) => [...acc, ...line.words], [])
@@ -47,12 +47,12 @@ export const processBeer = functions.https.onRequest(async ({ query }, response)
       .slice()
       .sort(({ boundingBox: a }, { boundingBox: b }) => area(b) - area(a))
       .map(({ text }) => text)
+      .slice(0, 4)
       .join(' ')
       .toLowerCase();
     
-    const searchResponse = await searchIndex.search({
-      filters: searchTerm,
-    });
+
+    const searchResponse = await searchIndex.search(searchTerm);
 
     response.send(searchResponse);
   } catch (e) {

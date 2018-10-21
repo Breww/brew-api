@@ -56,7 +56,6 @@ export const recommendPersonal = functions.https.onRequest(async ({ query }, res
     const filteredBeers = beers.filter(({ rating }: BeerEntity) => Boolean(Number(rating)))
     const mappedCategories = preferredCategories.map(category => ({ category }));
 
-
     if (mappedCategories.length === 0) {
       response.send({
         content: []
@@ -79,7 +78,7 @@ export const recommendPersonal = functions.https.onRequest(async ({ query }, res
 
     const { hits, params } = await searchIndex.search({
       filters: searchFilter,
-      length: 750,
+      length: 100,
       offset: queryOffset,
     });
 
