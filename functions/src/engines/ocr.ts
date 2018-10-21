@@ -38,6 +38,11 @@ export const ocr = functions.https.onRequest(async ({ query }, response) => {
       body: JSON.stringify({"url":url})
     }).then(res => res.json())
 
+    if (!result.regions) {
+      response.status(404).send({ message: 'No content available - result.regions is empty'})
+      return;
+    }
+
     const terms = result.regions.reduce((regionAcc, region) => [
       ...regionAcc,
       ...region.lines.reduce((acc, line) => [...acc, ...line.words], [])
