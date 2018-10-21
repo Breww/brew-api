@@ -143,3 +143,14 @@ http://localhost:5000/breww-220002/us-central1/recommendPersonal?uuid=36301CA1-2
    "params":"query=Bud&length=1&offset=0&restrictSearchableAttributes=%5B%22name%22%5D"
 }
 ```
+
+### GET - Get Beer image
+
+`https://us-central1-breww-220002.cloudfunctions.net/getBeerImage?brand={brand}`
+
+#### Params
+- `brand`: Brand to get logo url
+
+```
+https://tse2.mm.bing.net/th?id=OIP.YoqWV0GWqRUZ1QgfrgIw2wHaDs&pid=Api
+```
