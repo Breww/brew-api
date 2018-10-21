@@ -3,11 +3,11 @@ import * as algoliasearch from 'algoliasearch';
 
 import fetch from 'node-fetch';
 
-export const MIN_BOUNDING_BOX_SIZE = 100;
+export const MIN_BOUNDING_BOX_SIZE = 400;
 
-export function area (serializedBb) {
+export function area (serializedBb: string) {
   const [_, __, width, height ] = serializedBb.split(',');
-  return width * height;
+  return Number(width) * Number(height);
 }
 
 const algoliaConfig = functions.config().algolia || {};
