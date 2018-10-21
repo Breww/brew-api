@@ -3,6 +3,8 @@ import * as algoliasearch from 'algoliasearch';
 
 import fetch from 'node-fetch';
 
+export const MIN_BOUNDING_BOX_SIZE = 100;
+
 export function area (serializedBb) {
   const [_, __, width, height ] = serializedBb.split(',');
   return width * height;
@@ -35,7 +37,7 @@ export const ocr = functions.https.onRequest(async ({ query }, response) => {
         'Content-Type': 'application/json',
         'Ocp-Apim-Subscription-Key' : functions.config().azure.computer_vision,
       },
-      body: JSON.stringify({"url":url})
+      body: JSON.stringify({ url })
     }).then(res => res.json())
 
     if (!result.regions) {
@@ -48,22 +50,30 @@ export const ocr = functions.https.onRequest(async ({ query }, response) => {
       ...region.lines.reduce((acc, line) => [...acc, ...line.words], [])
     ], [])
     
-    const searchTerm: string = terms
+    const sortedTerms = terms
       .slice()
-      .sort(({ boundingBox: a }, { boundingBox: b }) => area(b) - area(a))
+      .sort(({ boundingBox: a }, { boundingBox: b }) => area(b) - area(a));
+
+    console.log(sortedTerms);
+
+    const searchTerm = sortedTerms
+      .filter(({ boundingBox }) => area(boundingBox) > MIN_BOUNDING_BOX_SIZE)
       .map(({ text }) => text)
       .slice(0, 4)
       .join(' ')
       .toLowerCase();
     
+    console.log(searchTerm);
+
     if (searchTerm.trim().length === 0) {
       response.send({
         hits: []
       })
       return;
     }
-
     const searchResponse = await searchIndex.search(searchTerm);
+
+    console.log(searchResponse)
 
     response.send(searchResponse);
   } catch (e) {
