@@ -44,22 +44,26 @@ export const recommendPersonal = functions.https.onRequest(async ({ query }, res
   try {
     const result = await admin.firestore().collection('users').doc(uuid).get();
     
-    const {
+    let {
       beers,
       preferredCategories
     } = result.data();
 
-    if (!Array.isArray(beers) || !beers.length) {
+    beers = beers || [];
+    preferredCategories = preferredCategories || [];
+
+    // filter out bad rating beers
+    const filteredBeers = beers.filter(({ rating }: BeerEntity) => Boolean(Number(rating)))
+    const mappedCategories = preferredCategories.map(category => ({ category }));
+
+
+    if (mappedCategories.length === 0) {
       response.send({
         content: []
       });
       return;
     }
     
-    // filter out bad rating beers
-    const filteredBeers = beers.filter(({ rating }: BeerEntity) => Boolean(Number(rating)))
-    const mappedCategories = preferredCategories.map(category => ({ category }));
-
     const userPreferences = [
       ...filteredBeers,
       ...mappedCategories,
@@ -75,7 +79,7 @@ export const recommendPersonal = functions.https.onRequest(async ({ query }, res
 
     const { hits, params } = await searchIndex.search({
       filters: searchFilter,
-      length: 1000,
+      length: 750,
       offset: queryOffset,
     });
 
@@ -91,7 +95,7 @@ export const recommendPersonal = functions.https.onRequest(async ({ query }, res
       [hit.id]: hit
     }), {})
 
-    const scoredResponseSets = beers.reduce((acc, { category }: BeerEntity) => {
+    const scoredResponseSets = userPreferences.reduce((acc, { category }: BeerEntity) => {
       const recommender = new ContentBasedRecommender({
         minScore: DEFAULT_MIN_SCORE,
         maxSimilarDocuments: queryLimit * 5,
@@ -102,7 +106,7 @@ export const recommendPersonal = functions.https.onRequest(async ({ query }, res
       recommender.train(joinedTrainingSet);
   
       const similarDocuments = recommender.getSimilarDocuments('-1', 0, queryLimit * 2);
-  
+
       const matchedDocuments = similarDocuments.map(
         ({ id, score }) => ({
           ...referenceMap[id],
