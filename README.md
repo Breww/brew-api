@@ -4,7 +4,7 @@
 
 ### GET - User recommendations
 
-`https://us-central1-breww-220002.cloudfunctions.net/userPrefRecommendation?uuid={uuid}`
+`https://us-central1-breww-220002.cloudfunctions.net/recommendPersonal?uuid={uuid}`
 
 #### Params
 - `uuid`: Unique user id tied to an account
@@ -14,7 +14,7 @@
 ### Sample Response
 
 ```
-http://localhost:5000/breww-220002/us-central1/userPrefRecommendation?uuid=36301CA1-2B4B-40EF-820C-A17E09CC1FCA&limit=1
+http://localhost:5000/breww-220002/us-central1/recommendPersonal?uuid=36301CA1-2B4B-40EF-820C-A17E09CC1FCA&limit=1
 
 {
    "params":"filters=Category%3A%22Irish%20Ale%20%22OR%20Category%3A%22German%20Lager%20%22&length=1&offset=0",
@@ -142,4 +142,15 @@ http://localhost:5000/breww-220002/us-central1/userPrefRecommendation?uuid=36301
    "query":"Bud",
    "params":"query=Bud&length=1&offset=0&restrictSearchableAttributes=%5B%22name%22%5D"
 }
+```
+
+### GET - Get Beer image
+
+`https://us-central1-breww-220002.cloudfunctions.net/getBeerImage?brand={brand}`
+
+#### Params
+- `brand`: Brand to get logo url
+
+```
+https://tse2.mm.bing.net/th?id=OIP.YoqWV0GWqRUZ1QgfrgIw2wHaDs&pid=Api
 ```
