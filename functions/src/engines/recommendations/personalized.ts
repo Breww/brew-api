@@ -119,7 +119,7 @@ export const recommendPersonal = functions.https.onRequest(async ({ query }, res
       ]
     }, []);
 
-    const responseContent = scoredResponseSets.sort(({ score: a }, { score: b }) => Number(a) < Number(b))
+    const responseContent = scoredResponseSets.sort(({ score: a }, { score: b }) => Number(b) - Number(a))
       .slice(0, queryLimit)
 
     response.send({
